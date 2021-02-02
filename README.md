@@ -12,10 +12,10 @@ Format of the file:
 ```
 
 * One line per user.
-* Empty lines and lines starting with # are ignored.
+* Empty lines and lines starting with ```#``` are ignored.
 * All parameters except ```<username>``` are optional. You should provide either of ```<password hash>``` or ```<SSH public key>``` to be able to login.
-* ```<UID>``` and ```<GID>``` must be >=1000.
-* The ```<home directory>``` has to be under ```/home```.
+* ```<UID>``` and ```<GID>```, if provided, must be >=1000.
+* The ```<home directory>```, if provided, has to be under ```/home```.
 
 To create the optional ```<password hash>``` run:
 
