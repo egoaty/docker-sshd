@@ -33,7 +33,7 @@ if ! [ -f /users_created ]; then
 		set ${line}
 		IFS="${OLDIFS}"
 		user="$1"
-		password="$2"
+		password="${2:-*}"
 		uid="$3"
 		gid="$4"
 		gecos="$5"
