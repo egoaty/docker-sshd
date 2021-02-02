@@ -11,84 +11,94 @@
 
 user_file="${LOGIN_USER_FILE:-/login_users}"
 
-if ! [ -f "${user_file}" ]; then
-	echo "ERROR: Need to mount user file to '${user_file}'." >&2
-	echo "Format (per line):" >&2
-	echo "<username>:[<password hash (crypt)>]:[<UID>]:[<GID>]:[<comment>]:[<home directory>]:[shell]:[<SSH public key>]" >&2
-	exit 2
-fi
-
-set -e   # Exit on error
-
-cat "${user_file}" | \
-while read -r line; do
-	
-	# Ignore empty lines and lines starting with #
-	[ -z "${line}" ] && continue
-	[ "${line#\#}" != "${line}" ] && continue
-
-	OLDIFS="${IFS}"
-	IFS=':'
-	set ${line}
-	IFS="${OLDIFS}"
-	user="$1"
-	password="$2"
-	uid="$3"
-	gid="$4"
-	gecos="$5"
-	home="${6:-/home/${user}}"
-	shell="${7:-/bin/bash}"
-	ssh_key="$8"
-
-	if [ -z "${user}" ]; then
-		echo "ERROR: Username must not be empty." >&2
-		exit 2
-	fi
-
-	if [ -n "${home}" ] && [ "${home#/home/}" == "${home}" ]; then
-		echo "ERROR: HOME directory of user '${user}' has to be under /home. '${home}'" >&2
+if ! [ -f /users_created ]; then
+	if ! [ -f "${user_file}" ]; then
+		echo "ERROR: Need to mount user file to '${user_file}'." >&2
+		echo "Format (per line):" >&2
+		echo "<username>:[<password hash (crypt)>]:[<UID>]:[<GID>]:[<comment>]:[<home directory>]:[shell]:[<SSH public key>]" >&2
 		exit 2
 	fi
 	
-	if [ -n "${gid}" ]; then
-		if [ "${gid}" -lt 1000 ]; then
-			echo "ERROR: GID must be >=1000" >&2
+	set -e   # Exit on error
+	
+	cat "${user_file}" | \
+	while read -r line; do
+		
+		# Ignore empty lines and lines starting with #
+		[ -z "${line}" ] && continue
+		[ "${line#\#}" != "${line}" ] && continue
+	
+		OLDIFS="${IFS}"
+		IFS=':'
+		set ${line}
+		IFS="${OLDIFS}"
+		user="$1"
+		password="$2"
+		uid="$3"
+		gid="$4"
+		gecos="$5"
+		home="${6:-/home/${user}}"
+		shell="${7:-/bin/bash}"
+		ssh_key="$8"
+	
+		if [ -z "${user}" ]; then
+			echo "ERROR: Username must not be empty." >&2
 			exit 2
 		fi
-		echo "Creating group '${user}' with GID '${gid}'."
-		groupadd -g "${gid}" "${user}"
-	fi
+	
+		if [ -n "${home}" ] && [ "${home#/home/}" == "${home}" ]; then
+			echo "ERROR: HOME directory of user '${user}' has to be under /home. '${home}'" >&2
+			exit 2
+		fi
+		
+		if [ -n "${gid}" ]; then
+			if [ "${gid}" -lt 1000 ]; then
+				echo "ERROR: GID must be >=1000" >&2
+				exit 2
+			fi
+			echo "Creating group '${user}' with GID '${gid}'."
+			groupadd -g "${gid}" "${user}"
+		fi
+	
+		if [ -n "${uid}" ] && [ "${uid}" -lt 1000 ]; then
+			echo "ERROR: UID must be >=1000" >&2
+			exit 2
+		fi
+	
+		[ -n "${password}" ] && OPTS="${OPTS} -p ${password}"
+		[ -n "${uid}" ] && OPTS="${OPTS} -u ${uid}"
+		[ -n "${gid}" ] && OPTS="${OPTS} -g ${gid}"
+		[ -n "${gecos}" ] && OPTS="${OPTS} -c ${gecos}"
+		[ -n "${home}" ] && OPTS="${OPTS} -d ${home}"
+		[ -n "${shell}" ] && OPTS="${OPTS} -s ${shell}"
+		echo "Creating user '${user}'."
+		useradd -m ${OPTS} "${user}"
+	
+		if [ -n "${ssh_key}" ]; then
+			mkdir -p "${home}/.ssh/"
+			chown "${user}" "${home}/.ssh/"
+			chmod 700 "${home}/.ssh/"
+			touch "${home}/.ssh/authorized_key"
+			chown "${user}" "${home}/.ssh/authorized_key"
+			chmod 600 "${home}/.ssh/authorized_key"
+			grep "${ssh_key}" "${home}/.ssh/authorized_key" >/dev/null ||
+		  	echo "${ssh_key}" >> "${home}/.ssh/authorized_key"
+		fi
+	
+	done
+	set +e 
 
-	if [ -n "${uid}" ] && [ "${uid}" -lt 1000 ]; then
-		echo "ERROR: UID must be >=1000" >&2
-		exit 2
-	fi
+	touch /users_created
+fi
 
-	[ -n "${password}" ] && OPTS="${OPTS} -p ${password}"
-	[ -n "${uid}" ] && OPTS="${OPTS} -u ${uid}"
-	[ -n "${gid}" ] && OPTS="${OPTS} -g ${gid}"
-	[ -n "${gecos}" ] && OPTS="${OPTS} -c ${gecos}"
-	[ -n "${home}" ] && OPTS="${OPTS} -d ${home}"
-	[ -n "${shell}" ] && OPTS="${OPTS} -s ${shell}"
-	echo "Creating user '${user}'."
-	useradd -m ${OPTS} "${user}"
+# Genereate host keys if they don't exist
+ssh-keygen -A -f /local
 
-	if [ -n "${ssh_key}" ]; then
-		mkdir -p "${home}/.ssh/"
-		chown "${user}" "${home}/.ssh/"
-		chmod 700 "${home}/.ssh/"
-		touch "${home}/.ssh/authorized_key"
-		chown "${user}" "${home}/.ssh/authorized_key"
-		chmod 600 "${home}/.ssh/authorized_key"
-		grep "${ssh_key}" "${home}/.ssh/authorized_key" >/dev/null ||
-	  	echo "${ssh_key}" >> "${home}/.ssh/authorized_key"
-	fi
+touch /var/log/sshd.log
 
-done
-set +e 
-
-ssh-keygen -A
+# Print sshd log messages to stdout (in background)
+tail -F /var/log/sshd.log &
 
 # Run sshd
-/usr/sbin/sshd -D -E /var/log/sshd.log
+exec /usr/sbin/sshd -D -E /var/log/sshd.log
 
