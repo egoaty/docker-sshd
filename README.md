@@ -23,3 +23,22 @@ To create the optional ```<password hash>``` run:
 docker run --rm -it egoaty/sshd mkpasswd --salt <~6 random characters>
 ```
 
+## Running the container
+
+Docker compose example:
+
+```
+version: '2'
+
+services:
+  ssh:
+    image: 'egoaty/sshd'
+    volumes:
+      - ./ssh/login_users:/login_users:ro
+      - ./ssh/conf/:/etc/ssh/:rw
+      - ./ssh/log:/var/log:rw
+      - ./ssh/home:/home:rw
+    restart: unless-stopped
+```
+
+**Note:** To improve security set the ```/etc/ssh/``` mount to ``ro`` after the first run.

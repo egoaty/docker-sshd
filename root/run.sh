@@ -45,7 +45,7 @@ while read -r line; do
 		exit 2
 	fi
 
-	if [ -n "${home}" ] && [ "${home#/home}" == "${home}" ]; then
+	if [ -n "${home}" ] && [ "${home#/home/}" == "${home}" ]; then
 		echo "ERROR: HOME directory of user '${user}' has to be under /home. '${home}'" >&2
 		exit 2
 	fi
@@ -90,5 +90,5 @@ set +e
 ssh-keygen -A
 
 # Run sshd
-/usr/sbin/sshd -D -e
+/usr/sbin/sshd -D -E /var/log/sshd.log
 
