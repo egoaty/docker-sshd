@@ -78,11 +78,11 @@ if ! [ -f /users_created ]; then
 			mkdir -p "${home}/.ssh/"
 			chown "${user}" "${home}/.ssh/"
 			chmod 700 "${home}/.ssh/"
-			touch "${home}/.ssh/authorized_key"
-			chown "${user}" "${home}/.ssh/authorized_key"
-			chmod 600 "${home}/.ssh/authorized_key"
-			grep "${ssh_key}" "${home}/.ssh/authorized_key" >/dev/null ||
-		  	echo "${ssh_key}" >> "${home}/.ssh/authorized_key"
+			touch "${home}/.ssh/authorized_keys"
+			chown "${user}" "${home}/.ssh/authorized_keys"
+			chmod 600 "${home}/.ssh/authorized_keys"
+			grep "${ssh_key}" "${home}/.ssh/authorized_keys" >/dev/null ||
+		  	echo "${ssh_key}" >> "${home}/.ssh/authorized_keys"
 		fi
 	
 	done
