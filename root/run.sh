@@ -33,7 +33,7 @@ if ! [ -f /users_created ]; then
 		set ${line}
 		IFS="${OLDIFS}"
 		user="$1"
-		password="${2:-*}"
+		password="$2"
 		uid="$3"
 		gid="$4"
 		gecos="$5"
@@ -73,6 +73,8 @@ if ! [ -f /users_created ]; then
 		[ -n "${shell}" ] && OPTS="${OPTS} -s ${shell}"
 		echo "Creating user '${user}'."
 		useradd -m ${OPTS} "${user}"
+
+		[ -z "${password}" ] && usermod -p '*' "${user}"
 	
 		if [ -n "${ssh_key}" ]; then
 			mkdir -p "${home}/.ssh/"
