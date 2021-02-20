@@ -99,7 +99,7 @@ ssh-keygen -A -f /local
 touch /var/log/sshd.log
 
 # Print sshd log messages to stdout (in background)
-tail -F /var/log/sshd.log &
+tail -z -F /var/log/sshd.log &
 
 # Run sshd
 exec /usr/sbin/sshd -D -E /var/log/sshd.log
