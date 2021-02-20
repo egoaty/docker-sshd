@@ -1,5 +1,5 @@
 # egoaty/sshd
-OpenSSH Server with support for multiple users authenticated by password or SSH-public-key
+OpenSSH Server with support for multiple users authenticated by password or SSH-public-key.
 
 ## Users file
 
