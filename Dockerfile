@@ -4,6 +4,7 @@ FROM $DISTRO
 COPY files/ /tmp/files
 
 RUN \
+  apk -U upgrade && \
   apk add -U --no-cache tzdata openssh shadow bash iputils && \
   cat /tmp/files/sshd_config_append >> /etc/ssh/sshd_config && \
   cat /tmp/files/ssh_config_append >> /etc/ssh/ssh_config && \
